@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% load static %}
+    <title>Slack</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css'>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <!-- Material Design Bootstrap -->
+    <link href="css/mdb.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="{% static 'css/global.css' %}"/>
+</head>
+
+<body>
+    <!-- navbar -->
+    <nav class="navbar navbar-default">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">Slack</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                    <li><a onclick="submit()">New Workspace <i class="fa fa-plus-square" aria-hidden="true"></i></a></li>
+                    <li><a href="help.html">Contact</a></li>
+                </ul>
+            </div>
+            <!--/.nav-collapse -->
+        </div>
+    </nav>
+    <!-- page -->
+    <div class="container">
+        <h3>Workspaces </h3>
+        <hr>
+        <table class="table" id="workspace">
+            {% for ws in user_ws %}
+            <tr><td><a href="{{ws.workspace}}/general/">{{ ws.workspace }}</a></td></tr>
+            {% endfor %}
+        </table>
+     </div>
+<script>
+    function submit(){
+            content  ='<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">';
+            content += '<form action="{% url 'create_workspace' %}" method="post" style="margin:20px"> {% csrf_token %}';
+            content += '<div class="form-group">';
+            content += '<label for="addr">Workspace name:</label>';
+            content += '<input type="text" name="name" class="form-control" id="addr">';
+            content += '</div>';
+            content += '<input type="submit" name="submit" value="Add" class="btn btn-primary" onclick="new_window.close()">';
+            content += '</form>';
+            new_window = window.open("", "_blank", "toolbar=yes,scrollbars=yes,resizable=yes,top=500,left=500,width=400,height=200");
+            new_window.document.write(content);
+        }
+    function closeWin() {
+        new_window.close();   // Closes the new window
+    }
+</script>
+</body>
+</html>

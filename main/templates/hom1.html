@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    {% load static %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>Slack</title>
+
+    <!-- Bootstrap CSS CDN -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+    <!-- Our Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/style4.css' %}">
+
+    <!-- Font Awesome JS -->
+    <script defer src="https://use.fontawesome.com/releases/v5.0.13/js/solid.js" integrity="sha384-tzzSw1/Vo+0N5UhStP3bvwWPq+uvzCMfrN1fEFe+xBmv1C/AtVX5K0uZtmcHitFZ" crossorigin="anonymous"></script>
+    <script defer src="https://use.fontawesome.com/releases/v5.0.13/js/fontawesome.js" integrity="sha384-6OIrr52G08NpOFSZdxxz1xdNSndlD4vdcf/q2myIUVO0VsqaGHJsB0RaBE01VTOY" crossorigin="anonymous"></script>
+    <!-- Adding Jquery -->
+    <script type="text/javascript">
+        function show_reply(message_id){
+            var ele = document.getElementById("reply-box-" + message_id);
+            if(ele.style.display == 'none')
+            {
+                $.ajax(
+                {
+                    type:"GET",
+                    url:"/slack/showreply/",
+                    data:
+                    {
+                        message_id : message_id
+                    },
+                    success: function(replies)
+                    {
+                        for (var i=0; i<replies.length; i++) {
+                            var author = replies[i].author;
+                            var message = replies[i].message;
+                            var time = replies[i].timestamp;
+
+                            var reply_temp =` <div class="col-sm-12">
+                                 <div class="card bg-light text-dark" style="margin:5px; margin-left:30px;">
+                                    <div class="card-body">
+                                        <div class="post-heading">
+                                            <div class="pull-left meta">
+                                                <div class="title">
+                                                    <a href="#"><b>${author}</b></a>  replied
+                                                    <h6 class="text-muted time small">${time}</h6>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="post-description">
+                                            <p>${message}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+
+                            document.getElementById("reply-box-"+message_id).innerHTML += reply_temp;
+                        }
+                    }
+                });
+                ele.style.display = 'block';
+            }
+            else
+            {
+                //alert("deleting reply");
+                ele.style.display = 'none';
+                document.getElementById("reply-box-"+message_id).innerHTML = "";
+            }
+            document.getElementById(message_id).getElementsByClassName("badge")[0].textContent = "";
+        }
+    </script>
+    <script>
+        var channel = '{{ channel.name }}';
+        var workspace = '{{ workspace }}';
+        var chatSocket = new WebSocket(
+        'ws://' + window.location.host +
+        '/ws/chat/' + workspace + "_" + channel + '/');
+
+        function delete_message(message_id)
+        {
+            //alert(message_id+" to be deleted");
+            document.getElementById(message_id).remove();
+        }
+        chatSocket.onmessage = function(e) {
+            var data = JSON.parse(e.data);
+            var type = data['message_type']
+            var id = data['message_id'];
+            if(type == 'delete')
+            {    delete_message(id);
+                 return;
+            }
+            var message = data['message'];
+            var author = data['author'];
+            var time = data['timestamp'];
+            var author_pk = data['author_pk']
+            var reply_to = data['reply_to'];
+            //alert(message);
+            /************************************/
+            var message_temp = `<div class="col-sm-12" id="${id}">
+                            <div class="card bg-light text-dark" style="margin:10px">
+                              <div class="card-body">
+                                <div class="post-heading">
+                                    <div class="pull-left image">
+                                        <a class="img-circle avatar"></a>
+                                    </div>
+                                    <div class="pull-left meta">
+                                        <div class="title">
+                                            <a href="#"><b>${author}</b></a>  made a post.
+                                            <h6 class="text-muted time small">${time}</h6>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="post-description">
+                                    <p>${message}</p>
+                                    <div class="stats">`;
+            if(author_pk == "{{ user.email }}")
+                message_temp += `<a href="#" onclick="send_delete('${id}');" class="btn btn-default stat-item"><i class="fas fa-trash"></i></a>`;
+            message_temp += `<a href="#" onclick="reply('${id}');" class="btn btn-default stat-item"><i class="fa fa-reply icon"></i></a>
+                               <a href="#" onclick="show_reply('${id}');" class="btn btn-default stat-item">replies<span class="badge badge-pill badge-info"></span></a>
+                                </div>
+                                </div>
+                                </div>
+                            </div>
+                            <div id="reply-box-${id}" style="display:none">
+                            </div>
+                            <div id="reply-${id}" style="display:none; margin-left:30px">
+                                <div class="input-group col-sm-8">
+                                  <input type="text" id = "reply_${id}" class="form-control" placeholder="reply..." aria-label="" aria-describedby="">
+                                  <div class="input-group-append">
+                                    <!--<button class="btn btn-outline-secondary" type="button"><i class="fas fa-paperclip"></i></button>-->
+                                    <button class="btn btn-outline-primary" type="button" onclick="send_reply('${id}');"><i class="fas fa-comment"></i></button>
+                                  </div>
+                                </div>
+                            </div>
+                        </div>`;
+            var reply_temp =` <div class="col-sm-12">
+                                 <div class="card bg-light text-dark" style="margin:5px; margin-left:30px;">
+                                    <div class="card-body">
+                                        <div class="post-heading">
+                                            <div class="pull-left meta">
+                                                <div class="title">
+                                                    <a href="#"><b>${author}</b></a>  replied
+                                                    <h6 class="text-muted time small">${time}</h6>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="post-description">
+                                            <p>${message}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`
+            /*******************************/
+            //alert(message);
+            if(!reply_to)
+            document.getElementById("message_box").innerHTML += message_temp;
+            else
+            {
+                var reply_box = document.getElementById("reply-box-"+reply_to);
+                if(document.getElementById("reply-box-"+reply_to).style.display == 'block')
+                    reply_box.innerHTML += reply_temp;
+                else
+                    document.getElementById(reply_to).getElementsByClassName("badge")[0].textContent = "new";
+            }
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        function send_message(){
+            var messageInputDom = document.querySelector('#send_message');
+            var message = messageInputDom.value;
+            chatSocket.send(JSON.stringify({
+                'message':message,
+                'message_type':'insert',
+                'author':'{{ user.name }}',
+                'channel':'{{ channel.pk }}',
+                'reply_to': null,
+                'author_pk':'{{ user.email }}'
+            }));
+            messageInputDom.value = '';
+        }
+
+        function send_reply(message_id){
+            var messageInputDom = document.querySelector('#reply_'+message_id);
+            var message = messageInputDom.value;
+            //alert(message);
+            chatSocket.send(JSON.stringify({
+                'message':message,
+                'message_type':'insert',
+                'author':'{{ user.name }}',
+                'channel':'{{ channel.pk }}',
+                'reply_to': message_id,
+                'author_pk':'{{ user.email }}'
+            }));
+            messageInputDom.value = '';
+        }
+
+        function send_delete(message_id){
+            var sure = confirm("Are you sure you want to delete?");
+            if(sure == true)
+            {
+                chatSocket.send(JSON.stringify({
+                    'message_type':'delete',
+                    'message_id':message_id
+                }));
+            }
+        }
+
+        function reply(message_id){
+            //alert(message_id);
+            var ele = document.getElementById("reply-" + message_id);
+            if(ele.style.display == 'none')
+            {
+                ele.style.display = 'block';
+                //alert(document.getElementById(message_id).getElementsByClassName("badge")[0]);
+                //document.getElementById(message_id).getElementsByClassName("badge")[0].textContent = "t";
+            }
+            else
+                ele.style.display = 'none';
+        }
+    </script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <!-- Sidebar  -->
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <h3>Slack</h3>
+                <strong>S</strong>
+            </div>
+            <ul class="list-unstyled components">
+                <li>
+                    <a href="#homeSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                        <i class="fas fa-th-large"></i>
+                        Channels
+                    </a>
+                    <ul class="collapse list-unstyled" id="homeSubmenu">
+                        {% for channel in channels %}
+                        <li>
+                            <a href="../{{ channel.name }}/">#{{ channel.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                <li>
+                    <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                        <i class="fas fa-users"></i>
+                        Members
+                    </a>
+                    <ul class="collapse list-unstyled" id="pageSubmenu">
+                        {% for user in channel_users %}
+                        <li>
+                            <a href="#">@{{ user.user.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            </ul>
+            {% if is_admin %}
+            <ul class="list-styled components">
+                 <li>
+                    <a href="#" data-toggle="modal" data-target="#ChannelModal" aria-expanded="false" class="toggle">
+                        <i class="fas fa-plus-square"></i>
+                        Channel
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-toggle="modal" data-target="#UserModal1" aria-expanded="false" class="toggle">
+                        <i class="fas fa-user-plus"></i>
+                        Members
+                    </a>
+                </li>
+            </ul>
+            {% endif %}
+       </nav>
+        <!-- Page Content  -->
+        <div id="content">
+            <!--top nav bar -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <button type="button" id="sidebarCollapse" class="btn btn-info">
+                        <i class="fas fa-align-justify"></i>
+                        <span>#{{ workspace }}/{{ channel }}</span>
+                    </button>
+                    <button class="btn btn-dark d-inline-block d-lg-none ml-auto" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                        <i class="fas fa-align-justify"></i>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="nav navbar-nav ml-auto">
+                            <li class="nav-item">
+                                <a class="nav-link" href="#"><i class="fas fa-bell"></i></a>
+                            </li>
+                            <li class="nav-item">
+                                <div class="dropdown show">
+                                  <a class="nav-link" id="dropdownMenuLink" data-toggle="dropdown"  aria-expanded="true"><i class="fas fa-user-circle"></i>{{ user.name }}</a>
+                                  <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+                                    <a class="dropdown-item" href="../../logout/"><i class="fas fa-power-off"></i> Logout</a>
+                                  </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <!--content-->
+            <div class="row">
+                <div class="col-sm-8" id="message_box" style="overflow-y:scroll; height:75vh">
+                    {% for message in messarray %}
+                    <div class="col-sm-12" id="{{ message.id }}">
+                        <div class="card bg-light text-dark" style="margin:10px">
+                            <div class="card-body">
+                                <div class="post-heading">
+                                    <div class="pull-left image">
+                                        <a class="img-circle avatar"></a>
+                                    </div>
+                                    <div class="pull-left meta">
+                                        <div class="title">
+                                            <a href="#"><b>{{ message.author }}</b></a>  made a post.
+                                            <h6 class="text-muted time small">{{ message.timestamp }}</h6>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="post-description">
+                                    <p>{{ message.message }}</p>
+                                    <div class="stats">
+                                        {% if message.author_pk == user.email %}
+                                            <a href="#" onclick="send_delete('{{ message.id }}');" class="btn btn-default stat-item"><i class="fas fa-trash"></i></a>
+                                        {% endif %}
+                                        <a href="#" onclick="reply('{{ message.id }}');" class="btn btn-default stat-item"><i class="fa fa-reply icon"></i></a>
+                                        <a href="#" onclick="show_reply('{{ message.id }}');" class="btn btn-default stat-item">replies<span class="badge badge-pill badge-info"></span></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="reply-box-{{ message.id }}" style="display:none">
+                            <!-- replies get here -->
+                        </div>
+                        <div id="reply-{{ message.id }}" style="display:none; margin-left:30px">
+                            <div class="input-group col-sm-8">
+                              <input type="text" id = "reply_{{ message.id }}" class="form-control" placeholder="reply..." aria-label="" aria-describedby="">
+                              <div class="input-group-append">
+                                <!--<button class="btn btn-outline-secondary" type="button"><i class="fas fa-paperclip"></i></button>-->
+                                <button class="btn btn-outline-primary" type="button" onclick="send_reply('{{message.id}}');"><i class="fas fa-comment"></i></button>
+                              </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="col-sm-3 sidenav" style="margin-left:20px;">
+                    <div class="card">
+                        <div class="card-header text-white bg-primary">
+                           Your Workspaces
+                        </div>
+                        <div class="card-body">
+                            <table class=".table-striped">
+                                {% for workspace in workspaces %}
+                                <tr class="center"><td><a href="../../{{workspace.workspace}}/general/">{{ workspace.workspace }}</a></td></tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top:30px">
+                        <div class="card-header text-white bg-primary">
+                            <strong>{{ workspace }}</strong> Members 
+                            {% if is_admin %}
+                            <a href="#" data-toggle="modal" data-target="#UserModal" aria-expanded="false" class="toggle"><i class="fas fa-plus-circle"></i></a>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                {% for workspace_user in workspace_users %}
+                                <li class="list-group-item">{{ workspace_user.user }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group footer col-sm-8">
+              <input type="text"  id="send_message" class="form-control" placeholder="messsage..." aria-label="" aria-describedby="">
+              <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button"><i class="fas fa-paperclip"></i></button>
+                <button class="btn btn-outline-primary" type="button" onclick="send_message();"><i class="fas fa-comment"></i></button>
+              </div>
+            </div>
+        <!-- content -->
+        </div>
+        <!-- wrapper -->
+    </div>
+    <!-- Footer -->
+    <footer class="page-footer font-small blue" style="background-color:#2e4d6f; color:#ffffff;">
+      <!-- Copyright -->
+      <div class="footer-copyright text-center py-3">© 2018 Copyright:
+        <a href="#">Slack</a>
+      </div>
+      <!-- Copyright -->
+    </footer>
+    <!-- Footer -->
+    <!-- jQuery CDN - Slim version (=without AJAX) -->
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <!--<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>-->
+    <!-- Popper.JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#sidebarCollapse').on('click', function () {
+                $('#sidebar').toggleClass('active');
+            });
+        });
+    </script>
+</body>
+    <!-- Modal Channel-->
+    <div class="modal fade" id="ChannelModal" tabindex="-1" role="dialog" aria-labelledby="ChannelModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="ChannelModalLabel">Create Channel</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <form action="add-channel/" method="post">
+              {% csrf_token %}    
+              <div class="modal-body">
+                <input type="text" name="channel" class="form-control" placeholder="Channel Name" aria-label="Username" aria-describedby="basic-addon1" required>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" name="submit" class="btn btn-primary">Add</button>
+              </div>
+          </form>      
+        </div>
+      </div>
+    </div>
+    <!--Worksapce Modal user-->
+    <div class="modal fade" id="UserModal" tabindex="-1" role="dialog" aria-labelledby="UserModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="UserModalLabel">Invite to WorkSpace {{ workspace }}</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <form action="add-user-ws/" method="post">
+              {% csrf_token %}
+              <div class="modal-body">
+                <input type="text" name="user" class="form-control" placeholder="xyz@mail.com" aria-label="Username" aria-describedby="basic-addon1" required>
+                <div style="margin-left: 22px; margin-top: 5px">  
+                    <input class="form-check-input" type="checkbox" name="is_admin"> Admin
+                </div>    
+              </div>
+              <div class="modal-footer">
+                <button type="submit" name="submit" class="btn btn-primary">Add</button>
+              </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <!-- end of modals-->
+    <!--Channel Modal user-->
+    <div class="modal fade" id="UserModal1" tabindex="-1" role="dialog" aria-labelledby="UserModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="UserModalLabel1">Invite to Channel #{{ channel }}</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <form action="add-user-ch/" method="post">
+              {% csrf_token %}
+              <div class="modal-body">
+                <input type="text" name="user" class="form-control" placeholder="xyz@mail.com" aria-label="Username" aria-describedby="basic-addon1" required>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" name="submit" class="btn btn-primary">Add</button>
+              </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <!-- end of modals-->
+</html>

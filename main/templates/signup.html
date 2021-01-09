@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card-body">
+	<form action="" method="post">
+		{% csrf_token %}
+		<!-- email -->
+		<span class="small">{{ message }}</span>
+		<div class="input-group form-group">
+			<div class="input-group-prepend">
+				<span class="input-group-text"><i class="fa fa-user"></i></span>
+			</div>
+			<input type="text" name="name" class="form-control" placeholder="Enter Your Name" required>
+        </div>
+        <!-- email -->
+        <div class="input-group form-group">    
+            <div class="input-group-prepend">
+				<span class="input-group-text"><i class="fa fa-envelope"></i></span>
+			</div>
+			<input type="text" name="email" class="form-control" placeholder="example@abc.com" required>
+        </div>    
+        <!-- password -->
+        <div class="input-group form-group">
+            <div class="input-group-prepend">
+				<span class="input-group-text"><i class="fa fa-lock"></i></span>
+			</div>
+			<input type="password" name="password" class="form-control" placeholder="Set Password" required>
+		</div>
+		<!-- submit -->
+		<div class="form-group">
+			<input type="submit" name="submit" value="Get Started" class="btn float-right login_btn">
+		</div>
+	</form>
+</div>
+<div class="card-footer">
+	<div class="d-flex justify-content-center links">
+	Already Using Slack?<a href="{% url 'login' %}">Sign In</a>
+	</div>
+</div>
+{% endblock %}
